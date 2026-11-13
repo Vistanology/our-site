@@ -253,7 +253,7 @@
 }
 
 /* Sections */
-.section { padding: clamp(40px, 6vw, 80px) 0; scroll-margin-top: 84px; }
+.section { padding: clamp(28px, 4.2vw, 50px) 0; scroll-margin-top: 84px; }
 .sectionInner { width: var(--shell); margin-inline: auto; }
 .sectionHead { margin-bottom: 34px; }
 .sectionTitle {
@@ -263,7 +263,7 @@
   letter-spacing: -1px;
   margin: 12px 0 0;
 }
-.sectionTitle span { color: #9ff9eb; }
+.sectionTitle span { background: linear-gradient(100deg, #7ff3ff, #9ff9eb 55%, #b9a6ff); -webkit-background-clip: text; background-clip: text; color: transparent; filter: drop-shadow(0 1px 10px rgba(64, 208, 255, 0.3)); }
 .sectionText { font-size: 14px; color: var(--muted); line-height: 1.6; max-width: 620px; margin: 12px 0 0; }
 
 /* About */
@@ -302,7 +302,7 @@
   font-size: 12.5px;
   color: var(--ink);
 }
-.services { margin-top: 26px; }
+.services { margin-top: 40px; }
 .servicesTitle { font-size: 14px; font-weight: 600; color: #b8f1ff; margin: 0 0 12px; }
 .serviceChip {
   padding: 7px 14px;
@@ -457,12 +457,145 @@
 }
 
 /* Motion off (user toggle) and OS reduced-motion: freeze ambient loops */
-[data-motion="off"] .bubble { animation: none; }
+[data-motion="off"] .bubble,
+[data-motion="off"] .ambientGlowA,
+[data-motion="off"] .ambientGlowB,
+[data-motion="off"] .ambientShafts,
+[data-motion="off"] .ambientBubbles span,
+[data-motion="off"] .titleSheen { animation: none; }
 @media (prefers-reduced-motion: reduce) {
   .bgImg { transform: none !important; }
   .bubble { animation: none; }
-  .stackCard, .certCard, .projCard, .role, .edu, .quote { transition: none; }
+  .ambientGlowA, .ambientGlowB, .ambientShafts, .ambientBubbles span, .titleSheen { animation: none !important; }
+  .stackCard, .certCard, .projCard, .role, .edu, .quote, .journeyCard { transition: none; }
 }
+
+/* ==================== Premium Frutiger Aero layer ==================== */
+.progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  z-index: 120;
+  transform-origin: 0 50%;
+  background: linear-gradient(90deg, #00d2ff, #7dffc4 55%, #ffd479);
+  box-shadow: 0 0 12px rgba(53, 213, 255, 0.55);
+  pointer-events: none;
+}
+
+.ambient { position: absolute; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; }
+.ambientGlowA, .ambientGlowB { position: absolute; width: 60vw; height: 60vw; max-width: 720px; max-height: 720px; border-radius: 50%; opacity: 0.5; will-change: transform; }
+.ambientGlowA { left: -12%; top: -6%; background: radial-gradient(circle at 45% 45%, rgba(53, 213, 255, 0.18), transparent 70%); }
+.ambientGlowB { right: -14%; top: 26%; background: radial-gradient(circle at 55% 45%, rgba(125, 255, 196, 0.15), transparent 72%); }
+.ambientShafts {
+  position: absolute;
+  inset: -30% 20% 20% -18%;
+  background: conic-gradient(from 118deg at 40% 16%, transparent 0deg, rgba(255, 255, 255, 0.13) 2.4deg, transparent 6deg, transparent 14deg, rgba(216, 251, 255, 0.18) 17deg, transparent 22deg);
+  mix-blend-mode: screen;
+  opacity: 0.45;
+  transform-origin: 40% 16%;
+  will-change: transform;
+}
+.ambientBubbles { position: absolute; inset: 0; }
+.ambientBubbles span {
+  position: absolute;
+  bottom: -8%;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 25%, rgba(255, 255, 255, 0.69), rgba(125, 255, 255, 0.2) 55%, transparent 72%);
+  border: 1px solid rgba(213, 253, 255, 0.33);
+  box-shadow: inset 1px 2px 3px rgba(218, 255, 255, 0.5), 0 2px 8px rgba(19, 189, 255, 0.33);
+  opacity: 0;
+  will-change: transform, opacity;
+}
+[data-motion="on"] .ambientGlowA { animation: owner-glow-a 46s ease-in-out infinite; }
+[data-motion="on"] .ambientGlowB { animation: owner-glow-b 54s ease-in-out infinite; }
+[data-motion="on"] .ambientShafts { animation: owner-shafts 44s ease-in-out infinite; }
+[data-motion="on"] .ambientBubbles span { animation-name: owner-rise; animation-timing-function: linear; animation-iteration-count: infinite; }
+@keyframes owner-glow-a { 0%, 100% { transform: translate3d(0, 0, 0) scale(1); } 50% { transform: translate3d(6%, 4%, 0) scale(1.08); } }
+@keyframes owner-glow-b { 0%, 100% { transform: translate3d(0, 0, 0) scale(1.05); } 50% { transform: translate3d(-5%, -3%, 0) scale(0.95); } }
+@keyframes owner-shafts { 0%, 100% { transform: rotate(0deg); } 50% { transform: rotate(6deg); } }
+@keyframes owner-rise {
+  0% { opacity: 0; transform: translate3d(0, 0, 0); }
+  8% { opacity: 0.85; }
+  50% { transform: translate3d(var(--drift, 20px), -55vh, 0); }
+  92% { opacity: 0.5; }
+  100% { opacity: 0; transform: translate3d(calc(var(--drift, 20px) * -0.6), -112vh, 0); }
+}
+
+/* Glossy hero title with a light sweep */
+.title { position: relative; }
+.titleSheen {
+  position: absolute;
+  inset: -6% -10%;
+  z-index: 2;
+  pointer-events: none;
+  border-radius: 24px;
+  background: linear-gradient(105deg, transparent 42%, rgba(255, 255, 255, 0.2) 48%, rgba(216, 251, 255, 0.33) 50%, rgba(255, 255, 255, 0.2) 52%, transparent 58%);
+  mix-blend-mode: overlay;
+  opacity: 0;
+  transform: translateX(-70%);
+  will-change: transform, opacity;
+}
+[data-motion="on"] .titleSheen { animation: owner-title-sheen 9s ease-in-out 1.6s infinite; }
+@keyframes owner-title-sheen {
+  0%, 55% { opacity: 0; transform: translateX(-70%); }
+  62% { opacity: 1; }
+  78% { opacity: 1; transform: translateX(70%); }
+  84%, 100% { opacity: 0; transform: translateX(70%); }
+}
+
+/* Hero trust strip (sourced from the README) */
+.trust { display: flex; flex-wrap: wrap; gap: 10px; margin: 2px 0 14px; }
+.trustItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(125, 255, 196, 0.32);
+  background: linear-gradient(rgba(168, 255, 120, 0.1), rgba(3, 162, 105, 0.14));
+  font-size: 12px;
+  color: #eafff2;
+}
+.trustItem svg { color: #9dffcf; }
+
+/* Pointer tilt + specular sheen on the portrait */
+.portraitTilt { position: relative; transform-style: preserve-3d; }
+.tiltSheen { position: absolute; inset: 0; z-index: 6; pointer-events: none; border-radius: 30px; overflow: hidden; opacity: 0; }
+.tiltSheen::after {
+  content: "";
+  position: absolute;
+  inset: -20% -60%;
+  background: linear-gradient(105deg, transparent 42%, rgba(255, 255, 255, 0.17) 48%, rgba(216, 251, 255, 0.28) 50%, rgba(255, 255, 255, 0.17) 52%, transparent 58%);
+  transform: translateX(-130%);
+}
+.portraitTilt:hover .tiltSheen { opacity: 1; }
+[data-motion="on"] .portraitTilt:hover .tiltSheen::after { animation: owner-card-sheen 1.15s ease-out; }
+@keyframes owner-card-sheen { from { transform: translateX(-130%); } to { transform: translateX(130%); } }
+
+/* Journey — next-step banner to Experience / Convite */
+.journey { padding: clamp(30px, 5vw, 60px) 0; }
+.journeyInner { width: var(--shell); margin-inline: auto; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.journeyCard {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 30px 32px;
+  border-radius: 26px;
+  border: 1px solid var(--glass-border);
+  background: var(--card);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.4), 0 20px 50px rgba(0, 40, 90, 0.32);
+  overflow: hidden;
+  transition: translate 0.24s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.24s ease, box-shadow 0.24s ease;
+}
+.journeyCard:hover { translate: 0 -5px; border-color: rgba(150, 205, 245, 0.6); box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.5), 0 26px 60px rgba(0, 26, 62, 0.44); }
+.journeyIcon { color: #9be8ff; }
+.journeyTitle { margin: 0; font-size: clamp(20px, 2.4vw, 28px); font-weight: 500; letter-spacing: -0.6px; }
+.journeyText { margin: 0; font-size: 14.5px; line-height: 1.6; color: var(--muted); max-width: 440px; }
+.journeyCta { margin-top: 6px; border-radius: 24px; font-size: 14px; }
 
 /* Responsive */
 @media (max-width: 900px) {
@@ -470,6 +603,11 @@
   .portrait { order: -1; }
   .aboutGrid { grid-template-columns: 1fr; gap: 24px; }
   .stackGrid, .certGrid, .projGrid, .contactGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .journeyInner { grid-template-columns: 1fr; }
+}
+@media (max-width: 700px) {
+  .ambientShafts { display: none; }
+  .ambientBubbles span:nth-child(2n) { display: none; }
 }
 @media (max-width: 640px) {
   .nav { display: none; }

@@ -284,6 +284,7 @@
 .ribbon {
   position: absolute;
   z-index: -1;
+  will-change: transform;
   width: 46vw;
   height: 20vw;
   min-width: 320px;
@@ -650,6 +651,8 @@
 .about {
   position: relative;
   padding: 130px 0 110px;
+  content-visibility: auto;
+  contain-intrinsic-size: auto 760px;
 }
 
 .aboutInner {
@@ -712,6 +715,8 @@
 
 .solutions {
   padding: 40px 0 120px;
+  content-visibility: auto;
+  contain-intrinsic-size: auto 900px;
 }
 
 .solutionsHead {
@@ -967,6 +972,8 @@
   position: relative;
   padding: 120px 0;
   overflow: hidden;
+  content-visibility: auto;
+  contain-intrinsic-size: auto 700px;
   text-align: center;
 }
 
@@ -1025,7 +1032,9 @@
 
 .contact {
   position: relative;
-  padding: 70px 0 150px;
+  padding: 70px 0 96px;
+  content-visibility: auto;
+  contain-intrinsic-size: auto 980px;
 }
 
 .contactAmbient {
@@ -1561,7 +1570,7 @@
 
 .footer {
   position: relative;
-  padding: 70px 0 40px;
+  padding: 56px 0 40px;
   border-top: 1px solid rgba(140, 190, 235, 0.12);
 }
 

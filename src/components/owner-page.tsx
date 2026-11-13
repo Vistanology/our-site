@@ -1,15 +1,16 @@
 "use client";
 
-import { useState, useSyncExternalStore, type ReactNode } from "react";
+import { useRef, useState, useSyncExternalStore, type CSSProperties, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { motion, useScroll, useTransform } from "framer-motion";
+import { motion, useMotionValue, useScroll, useSpring, useTransform } from "framer-motion";
 import {
   ArrowUpRight,
   Award,
   BookOpen,
   Briefcase,
   Coffee,
+  Compass,
   Github,
   GraduationCap,
   Linkedin,
@@ -17,6 +18,7 @@ import {
   MessageCircle,
   PawPrint,
   Send,
+  ShieldCheck,
   Sparkles,
 } from "lucide-react";
 import { asset } from "@/lib/asset";
@@ -79,6 +81,43 @@ function VistaMark({ className }: { className?: string }) {
   );
 }
 
+function Tilt({ children, className, motionEnabled, maxTilt = 7 }: { children: ReactNode; className?: string; motionEnabled: boolean; maxTilt?: number }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const rx = useMotionValue(0);
+  const ry = useMotionValue(0);
+  const springRx = useSpring(rx, { stiffness: 150, damping: 14, mass: 0.5 });
+  const springRy = useSpring(ry, { stiffness: 150, damping: 14, mass: 0.5 });
+  function move(event: ReactPointerEvent<HTMLDivElement>) {
+    if (!motionEnabled || !ref.current) return;
+    const rect = ref.current.getBoundingClientRect();
+    ry.set(((event.clientX - rect.left) / rect.width - 0.5) * maxTilt * 2);
+    rx.set(-((event.clientY - rect.top) / rect.height - 0.5) * maxTilt * 2);
+  }
+  function leave() { rx.set(0); ry.set(0); }
+  return (
+    <motion.div
+      ref={ref}
+      className={className}
+      style={{ rotateX: springRx, rotateY: springRy, transformPerspective: 900 }}
+      onPointerMove={move}
+      onPointerLeave={leave}
+    >
+      {children}
+      <span className={styles.tiltSheen} aria-hidden="true" />
+    </motion.div>
+  );
+}
+
+// Fixed values keep SSR and client markup identical (no randomness).
+const ambientBubbles = [
+  { left: "10%", size: 18, dur: 24, delay: 0, drift: 30 },
+  { left: "26%", size: 10, dur: 30, delay: -8, drift: -18 },
+  { left: "44%", size: 26, dur: 34, delay: -16, drift: 40 },
+  { left: "62%", size: 12, dur: 27, delay: -5, drift: -22 },
+  { left: "78%", size: 20, dur: 32, delay: -12, drift: 34 },
+  { left: "90%", size: 9, dur: 25, delay: -20, drift: -14 },
+];
+
 const heroContainer = {
   hidden: {},
   visible: { transition: { staggerChildren: 0.08, delayChildren: 0.05 } },
@@ -94,10 +133,12 @@ export default function OwnerPage() {
   const motionEnabled = motionChoice ?? !reducedMotion;
   const { scrollYProgress } = useScroll();
   const bgY = useTransform(scrollYProgress, [0, 1], ["0%", motionEnabled ? "7%" : "0%"]);
+  const barScale = useSpring(scrollYProgress, { stiffness: 140, damping: 30, mass: 0.4 });
 
   return (
     <div className={`${styles.page} vistanology`} data-page="dono" data-motion={motionEnabled ? "on" : "off"}>
       <a className={styles.skip} href="#conteudo">Pular para o conteúdo</a>
+      <motion.div className={styles.progress} style={{ scaleX: barScale }} aria-hidden="true" />
 
       <div className={styles.bg} aria-hidden="true">
         <motion.div className={styles.bgImg} style={{ y: bgY }}>
@@ -107,6 +148,17 @@ export default function OwnerPage() {
           </picture>
         </motion.div>
         <div className={styles.bgScrim} />
+      </div>
+
+      <div className={styles.ambient} aria-hidden="true">
+        <div className={styles.ambientGlowA} />
+        <div className={styles.ambientGlowB} />
+        <div className={styles.ambientShafts} />
+        <div className={styles.ambientBubbles}>
+          {ambientBubbles.map((b, i) => (
+            <span key={i} style={{ left: b.left, width: b.size, height: b.size, animationDuration: `${b.dur}s`, animationDelay: `${b.delay}s`, ["--drift"]: `${b.drift}px` } as CSSProperties} />
+          ))}
+        </div>
       </div>
 
       <Navbar motionEnabled={motionEnabled} onToggleMotion={() => setMotionChoice(!motionEnabled)} />
@@ -121,7 +173,7 @@ export default function OwnerPage() {
               animate="visible"
             >
               <motion.p className={styles.eyebrow} variants={heroItem}><Sparkles size={14} /> Por trás da Vista</motion.p>
-              <motion.h1 className={styles.title} variants={heroItem}>Quem é<br />o dono<span className={styles.titleDot}>?</span></motion.h1>
+              <motion.h1 className={styles.title} variants={heroItem}>Quem é<br />o dono<span className={styles.titleDot}>?</span><span className={styles.titleSheen} aria-hidden="true" /></motion.h1>
               <motion.p className={styles.lead} variants={heroItem}>
                 A Vista tem nome, marca e universo — mas também tem um rosto (e um urso).
                 Por trás de tudo está <strong>{owner.name}</strong>, conhecido como <strong>{owner.alias}</strong>: {owner.role}.
@@ -130,6 +182,10 @@ export default function OwnerPage() {
                 <span className={styles.metaItem}><MapPin size={14} /> {owner.location}</span>
                 <span className={styles.metaItem}><GraduationCap size={14} /> {owner.school}</span>
                 <span className={styles.metaItem}><Coffee size={14} /> {owner.studying}</span>
+              </motion.div>
+              <motion.div className={styles.trust} variants={heroItem}>
+                <span className={styles.trustItem}><ShieldCheck size={14} /> {owner.certificates.length} certificados verificados no README</span>
+                <span className={styles.trustItem}><Linkedin size={14} /> +2.376 seguidores no perfil</span>
               </motion.div>
               <motion.p className={styles.availability} variants={heroItem}>{owner.availability}</motion.p>
               <motion.div className={styles.ctaRow} variants={heroItem}>
@@ -146,17 +202,19 @@ export default function OwnerPage() {
                 animate={motionEnabled ? { y: [0, -10, 0] } : { y: 0 }}
                 transition={motionEnabled ? { duration: 7, repeat: Infinity, ease: "easeInOut" } : { duration: 0 }}
               >
+                <Tilt className={styles.portraitTilt} motionEnabled={motionEnabled}>
                 <motion.div
                   className={styles.portraitFrame}
                   initial={motionEnabled ? { opacity: 0, scale: 0.95, y: 18 } : false}
                   animate={{ opacity: 1, scale: 1, y: 0 }}
                   transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
                 >
-                  <Image className={styles.portraitImg} src={asset("/images/owner-dudu-hero.png")} alt={`Ilustração de ${owner.alias}, o urso desenvolvedor, programando em um home office com a ${owner.companion} dormindo ao fundo`} width={1280} height={1024} priority />
+                  <Image className={styles.portraitImg} src={asset("/images/owner-dudu-hero.webp")} alt={`Ilustração de ${owner.alias}, o urso desenvolvedor, programando em um home office com a ${owner.companion} dormindo ao fundo`} width={1280} height={1024} priority />
                   <span className={styles.bubble} style={{ width: 54, height: 54, top: "-14px", left: "18%" }} aria-hidden="true" />
                   <span className={styles.bubble} style={{ width: 30, height: 30, bottom: "16%", right: "-10px" }} aria-hidden="true" />
                   <span className={styles.bubble} style={{ width: 20, height: 20, top: "30%", right: "8%" }} aria-hidden="true" />
                 </motion.div>
+                </Tilt>
               </motion.div>
               <p className={styles.portraitCaption}><PawPrint size={13} /> {owner.alias} no código, {owner.companion} no sofá.</p>
             </div>
@@ -354,6 +412,23 @@ export default function OwnerPage() {
             <p className={styles.contactNote}>O site pessoal citado no perfil ainda não está no ar, então não aponto para um endereço que não responde.</p>
           </div>
         </section>
+
+        <section className={styles.journey}>
+          <div className={styles.journeyInner}>
+            <Reveal motionEnabled={motionEnabled} className={styles.journeyCard}>
+              <Compass size={24} className={styles.journeyIcon} />
+              <h2 className={styles.journeyTitle}>Quer ver o que construo na prática?</h2>
+              <p className={styles.journeyText}>O Experience reúne protótipos e estudos interativos que já estão no ar — um showroom em construção, sem promessas além do que existe.</p>
+              <Link className={`${styles.journeyCta} aero-button aero-button-primary`} href="/experience">Explorar o Experience <ArrowUpRight size={16} /></Link>
+            </Reveal>
+            <Reveal motionEnabled={motionEnabled} delay={0.1} className={styles.journeyCard}>
+              <Sparkles size={24} className={styles.journeyIcon} />
+              <h2 className={styles.journeyTitle}>Já tem uma ideia de sistema?</h2>
+              <p className={styles.journeyText}>Abra o convite dedicado e me conte o problema. A conversa começa pelo entendimento, não pelo código.</p>
+              <Link className={`${styles.journeyCta} aero-button aero-button-glass`} href="/convite-para-criar-sistema">Abrir o convite <ArrowUpRight size={16} /></Link>
+            </Reveal>
+          </div>
+        </section>
       </main>
 
       <footer className={styles.footer}>
@@ -365,6 +440,7 @@ export default function OwnerPage() {
           <nav className={styles.footerLinks} aria-label="Outras páginas">
             <Link href="/">Universo Vistanology</Link>
             <Link href="/convite-para-criar-sistema">Convite para criar um sistema</Link>
+            <Link href="/experience">Experience</Link>
             <a href={OWNER_WHATSAPP} target="_blank" rel="noopener noreferrer">WhatsApp</a>
             <a href={owner.links.github} target="_blank" rel="noopener noreferrer">GitHub</a>
           </nav>
