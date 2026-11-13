@@ -3,21 +3,27 @@ import { startSoundtrack } from "./soundtrack";
 
 export type EntryChoice = "sound" | "muted";
 export const ENTRY_KEY = "vistanology:entry:v1";
+/** Flag usada apenas pelo setup de testes para abrir a página direto, sem a intro. */
+export const SKIP_KEY = "vistanology:skip-boot:v1";
 
-let snapshot: boolean | undefined;
+// O boot toca a cada recarga completa (F5): este sinal é por documento e reinicia
+// quando o bundle recarrega. Dentro da mesma visita, navegação entre páginas não
+// reabre a intro.
+let bootedThisDocument = false;
 const listeners = new Set<() => void>();
+const startListeners = new Set<() => void>();
 
 function readShowBoot(): boolean {
   try {
-    const stored = window.sessionStorage.getItem(ENTRY_KEY);
-    return stored !== "sound" && stored !== "muted";
+    if (window.sessionStorage.getItem(SKIP_KEY)) return false;
   } catch {
-    return true;
+    /* Storage unavailable: fall back to showing the boot. */
   }
+  return !bootedThisDocument;
 }
 
 export function getShowBoot() {
-  return (snapshot ??= readShowBoot());
+  return readShowBoot();
 }
 
 export const getServerShowBoot = () => false;
@@ -27,17 +33,17 @@ export function subscribeEntry(listener: () => void) {
   return () => { listeners.delete(listener); };
 }
 
-export function completeEntry(choice: EntryChoice) {
-  try { window.sessionStorage.setItem(ENTRY_KEY, choice); } catch { /* The choice still applies for this visit. */ }
-  snapshot = false;
-  listeners.forEach((listener) => listener());
-  updatePreferences({ muted: choice === "muted" });
-  if (choice === "sound") startSoundtrack({ rampSeconds: 3, from: 0.04 });
+/** Aviso de "página iniciada": disparado no instante em que o boot fecha, para a veil de transição tocar a entrada. */
+export function onEntryStart(listener: () => void) {
+  startListeners.add(listener);
+  return () => { startListeners.delete(listener); };
 }
 
-/** A remembered "sound" choice may still be blocked by the browser on reload; the player shows an honest invite then. */
-export function resumeRememberedSoundtrack() {
-  try {
-    if (window.sessionStorage.getItem(ENTRY_KEY) === "sound") startSoundtrack({ rampSeconds: 3, from: 0.04 });
-  } catch { /* Nothing to resume without storage. */ }
+export function completeEntry(choice: EntryChoice) {
+  try { window.sessionStorage.setItem(ENTRY_KEY, choice); } catch { /* The choice still applies for this visit. */ }
+  bootedThisDocument = true;
+  listeners.forEach((listener) => listener());
+  startListeners.forEach((listener) => listener());
+  updatePreferences({ muted: choice === "muted" });
+  if (choice === "sound") startSoundtrack({ rampSeconds: 3, from: 0.04 });
 }

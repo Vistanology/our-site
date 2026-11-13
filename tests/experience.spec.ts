@@ -5,7 +5,7 @@ import fs from "node:fs/promises";
 // Existing tests exercise the site itself; the Vista entry screen gets its own test.
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => {
-    window.sessionStorage.setItem("vistanology:entry:v1", "muted");
+    window.sessionStorage.setItem("vistanology:skip-boot:v1", "1");
   });
 });
 
@@ -262,10 +262,10 @@ test("audio is opt-in, produces a signal, mutes, stops and never autoplays on re
     return Math.sqrt(samples.reduce((sum, sample) => sum + sample * sample, 0) / samples.length);
   });
   expect(await page.evaluate(() => (window as unknown as { __audioContexts: unknown[] }).__audioContexts.length)).toBe(0);
+  await page.getByRole("button", { name: "Abrir controles de som" }).click();
   await page.getByRole("button", { name: "Reproduzir Águas de amanhã" }).click();
   await expect(page.getByRole("button", { name: "Pausar Águas de amanhã" })).toBeVisible();
   await expect.poll(rms).toBeGreaterThan(0.00005);
-  await page.getByRole("button", { name: "Abrir controles da paisagem sonora" }).click();
   await page.getByRole("slider", { name: "Volume", exact: true }).fill("4");
   await page.getByRole("switch", { name: "Camada musical" }).click();
   await expect(page.getByRole("switch", { name: "Camada musical" })).toHaveAttribute("aria-checked", "false");
@@ -276,7 +276,7 @@ test("audio is opt-in, produces a signal, mutes, stops and never autoplays on re
   expect(await page.evaluate(() => (window as unknown as { __audioContexts: AudioContext[] }).__audioContexts[0].state)).toBe("closed");
   await page.reload();
   expect(await page.evaluate(() => (window as unknown as { __audioContexts: unknown[] }).__audioContexts.length)).toBe(0);
-  await page.getByRole("button", { name: "Abrir controles da paisagem sonora" }).click();
+  await page.getByRole("button", { name: "Abrir controles de som" }).click();
   await expect(page.getByRole("slider", { name: "Volume", exact: true })).toHaveValue("4");
   await expect(page.getByRole("switch", { name: "Camada musical" })).toHaveAttribute("aria-checked", "false");
 });
@@ -332,18 +332,15 @@ test("principles and faq sections are live, readable and honest", async ({ page 
 });
 
 test("vista boot entry starts the soundtrack only after the entry click", async ({ page }, testInfo) => {
-  // Clear the bypass once; later reloads must keep the real entry choice.
+  // The intro replays on every full reload; clear the test bypass on each load so the boot is reachable.
   await page.addInitScript(() => {
-    if (!window.sessionStorage.getItem("vistanology:boot-tested")) {
-      window.sessionStorage.removeItem("vistanology:entry:v1");
-      window.sessionStorage.setItem("vistanology:boot-tested", "1");
-    }
+    window.sessionStorage.removeItem("vistanology:skip-boot:v1");
   });
   await page.goto("/");
   const boot = page.getByRole("dialog", { name: "Tela de entrada Vistanology" });
   await expect(boot).toBeVisible();
   await expect(boot.getByRole("progressbar", { name: "Carregando a experiência Vistanology" })).toBeVisible();
-  await expect(page.getByText("Iniciando sua experiência…")).toBeVisible();
+  await expect(boot.getByText("Inicializando ambiente…")).toBeVisible();
   await page.screenshot({ path: testInfo.outputPath("vista-boot.png") });
   await expect(boot.getByRole("button", { name: "Entrar com som" })).toBeVisible({ timeout: 8000 });
   await expect(boot.getByRole("button", { name: "Entrar sem som" })).toBeVisible();
@@ -357,26 +354,27 @@ test("vista boot entry starts the soundtrack only after the entry click", async 
   await expect(audio).toBeAttached();
   await expect.poll(() => audio.evaluate((element) => (element as HTMLAudioElement).paused)).toBe(false);
   await expect.poll(() => audio.evaluate((element) => (element as HTMLAudioElement).loop)).toBe(true);
-  await expect(page.getByRole("button", { name: "Silenciar todo o som" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Abrir controles de som" })).toBeVisible();
   await page.screenshot({ path: testInfo.outputPath("home-after-entry.png") });
-  await page.getByRole("button", { name: "Silenciar todo o som" }).click();
+  await page.getByRole("button", { name: "Abrir controles de som" }).click();
+  await page.getByRole("button", { name: "Silenciar áudio" }).click();
   await expect.poll(() => audio.evaluate((element) => (element as HTMLAudioElement).muted)).toBe(true);
-  await expect(page.getByRole("button", { name: "Ativar som" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Silenciar áudio" })).toHaveAttribute("aria-pressed", "true");
+  // F5 replays the intro: after a full reload the boot returns and no audio has started yet.
   await page.reload();
-  await expect(page.getByRole("dialog", { name: "Tela de entrada Vistanology" })).toHaveCount(0);
+  const bootAfterReload = page.getByRole("dialog", { name: "Tela de entrada Vistanology" });
+  await expect(bootAfterReload).toBeVisible();
+  await expect(bootAfterReload.getByRole("progressbar", { name: "Carregando a experiência Vistanology" })).toBeVisible();
+  expect(await page.evaluate(() => document.querySelector("audio[data-soundtrack]"))).toBeNull();
 
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.evaluate(() => {
-    window.sessionStorage.removeItem("vistanology:entry:v1");
-    window.sessionStorage.removeItem("vistanology:boot-tested");
-  });
   await page.reload();
   await expect(boot.getByRole("button", { name: "Entrar com som" })).toBeVisible({ timeout: 8000 });
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   await page.screenshot({ path: testInfo.outputPath("vista-welcome-390.png") });
   await boot.getByRole("button", { name: "Entrar sem som" }).click();
   await expect(boot).toHaveCount(0);
-  await expect(page.getByRole("button", { name: "Ativar som" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Abrir controles de som" })).toBeVisible();
   expect(await page.evaluate(() => {
     const element = document.querySelector("audio[data-soundtrack]") as HTMLAudioElement | null;
     return element === null || element.paused;
